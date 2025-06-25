@@ -4,7 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>flipbook</title>
-    <script src="https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.min.js"></script>    <style>
+    <!-- Use unpkg CDN which better supports gif.js -->
+    <script src="https://unpkg.com/gif.js@0.2.0/dist/gif.min.js"></script>
+    <style>
         body {
             margin: 0;
             padding: 20px;
@@ -248,8 +250,8 @@
         #drawingCanvas {
             display: block;
             cursor: crosshair;
-            touch-action: none; /* Disable browser touch gestures */
-            user-select: none; /* Prevent text selection */
+            touch-action: none;
+            user-select: none;
         }
         
         .controls {
@@ -407,7 +409,7 @@
             button {
                 padding: 12px 16px;
                 font-size: 14px;
-                min-height: 44px; /* Minimum touch target size */
+                min-height: 44px;
             }
             
             .controls {
@@ -457,7 +459,7 @@
 </head>
 <body>
     <div class="container">
-        <div class="header"></div>
+        <div class="header">🎬 Flipbook Animator</div>
         
         <div class="toolbar">
             <div class="tool-group">
@@ -552,7 +554,7 @@
             </div>
         </div>
         
-        <div class="status" id="status"> </div>
+        <div class="status" id="status">Ready to animate! 🎨</div>
     </div>
 
     <script>
@@ -1222,32 +1224,6 @@ Click OK to continue animating!
                             } else {
                                 this.deleteFrame();
                             }
-                            break;
-                            
-                        case 'o':
-                            e.preventDefault();
-                            if (e.ctrlKey || e.metaKey) {
-                                // Don't conflict with Ctrl+O (open file)
-                                return;
-                            }
-                            this.setTool('circle');
-                            this.updateStatus('⌨️ Circle tool selected (O)');
-                            break;
-                            
-                        case 'r':
-                            e.preventDefault();
-                            this.setTool('rectangle');
-                            this.updateStatus('⌨️ Rectangle tool selected (R)');
-                            break;
-                            
-                        case 's':
-                            e.preventDefault();
-                            if (e.ctrlKey || e.metaKey) {
-                                // Don't conflict with Ctrl+S (save)
-                                return;
-                            }
-                            this.setTool('select');
-                            this.updateStatus('⌨️ Select tool selected (S)');
                             break;
                             
                         case 'i':
@@ -2048,16 +2024,17 @@ Click OK to continue animating!
                 this.updateStatus('Generating GIF... Please wait.');
                 
                 try {
+                    // Create GIF without workers to avoid CORS issues
                     const gif = new GIF({
-                        workers: 2,
+                        workers: 0, // Disable workers to avoid CORS issues
                         quality: 10,
                         width: this.canvas.width,
                         height: this.canvas.height,
-                        workerScript: 'https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.worker.js'
+                        // Remove workerScript to avoid loading issues
                     });
                     
                     // Add each frame to the GIF
-                    this.frames.forEach(frameData => {
+                    this.frames.forEach((frameData, index) => {
                         const tempCanvas = document.createElement('canvas');
                         tempCanvas.width = this.canvas.width;
                         tempCanvas.height = this.canvas.height;
@@ -2077,7 +2054,11 @@ Click OK to continue animating!
                         // Draw frame content over white background
                         tempCtx.drawImage(frameCanvas, 0, 0);
                         
-                        gif.addFrame(tempCanvas, { delay: Math.max(100, 1000 / this.fps) });
+                        const delay = Math.max(100, 1000 / this.fps);
+                        gif.addFrame(tempCanvas, { delay: delay });
+                        
+                        // Update progress
+                        this.updateStatus(`Adding frame ${index + 1}/${this.frames.length} to GIF...`);
                     });
                     
                     gif.on('finished', (blob) => {
@@ -2094,7 +2075,7 @@ Click OK to continue animating!
                             // Clean up after a delay
                             setTimeout(() => URL.revokeObjectURL(url), 1000);
                             
-                            this.updateStatus('GIF exported successfully!');
+                            this.updateStatus('🎉 GIF exported successfully!');
                         } catch (error) {
                             console.error('Error downloading GIF:', error);
                             this.updateStatus('Error downloading GIF file');
@@ -2103,6 +2084,16 @@ Click OK to continue animating!
                     
                     gif.on('progress', (progress) => {
                         this.updateStatus(`Generating GIF... ${Math.round(progress * 100)}%`);
+                    });
+                    
+                    gif.on('start', () => {
+                        this.updateStatus('Starting GIF generation...');
+                    });
+                    
+                    // Add error handler
+                    gif.on('error', (error) => {
+                        console.error('GIF generation error:', error);
+                        this.updateStatus('Error generating GIF. Please try again.');
                     });
                     
                     gif.render();
