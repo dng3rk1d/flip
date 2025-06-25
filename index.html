@@ -1,0 +1,2099 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>flipbook</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f0f0f0;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: #2c3e50;
+            color: white;
+            padding: 15px 20px;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        .toolbar {
+            background: #ecf0f1;
+            padding: 15px 20px;
+            border-bottom: 1px solid #bdc3c7;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .tool-group {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            padding: 8px;
+            background: white;
+            border-radius: 6px;
+            border: 1px solid #bdc3c7;
+        }
+        
+        .tool-group label {
+            font-weight: 500;
+            margin-right: 8px;
+        }
+        
+        button {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 4px;
+            background: #3498db;
+            color: white;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+        
+        button:hover {
+            background: #2980b9;
+        }
+        
+        button:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+        }
+        
+        button.active {
+            background: #e74c3c;
+        }
+        
+        button[title]:hover::after {
+            content: attr(title);
+            position: absolute;
+            bottom: 120%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #2c3e50;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            white-space: nowrap;
+            z-index: 1000;
+            pointer-events: none;
+        }
+        
+        button {
+            position: relative;
+        }
+        
+        #shortcutsHelp {
+            background: #9b59b6;
+        }
+        
+        #shortcutsHelp:hover {
+            background: #8e44ad;
+        }
+        
+        #fillTool {
+            background: #f39c12;
+        }
+        
+        #fillTool:hover {
+            background: #e67e22;
+        }
+        
+        #fillTool.active {
+            background: #d35400;
+        }
+        
+        #lineTool {
+            background: #1abc9c;
+        }
+        
+        #lineTool:hover {
+            background: #16a085;
+        }
+        
+        #lineTool.active {
+            background: #0e6b5d;
+        }
+        
+        #undoBtn, #redoBtn {
+            background: #95a5a6;
+        }
+        
+        #undoBtn:not(:disabled):hover, #redoBtn:not(:disabled):hover {
+            background: #7f8c8d;
+        }
+        
+        #undoBtn:not(:disabled), #redoBtn:not(:disabled) {
+            background: #34495e;
+        }
+        
+        #duplicateFrames {
+            background: #27ae60;
+        }
+        
+        #duplicateFrames:hover:not(:disabled) {
+            background: #229954;
+        }
+        
+        #deleteSelectedFrames {
+            background: #e74c3c;
+        }
+        
+        #deleteSelectedFrames:hover:not(:disabled) {
+            background: #c0392b;
+        }
+        
+        #selectAllFrames {
+            background: #8e44ad;
+        }
+        
+        #selectAllFrames:hover {
+            background: #7d3c98;
+        }
+        
+        .toggle-btn {
+            background: #3498db;
+        }
+        
+        .toggle-btn.active {
+            background: #2ecc71;
+        }
+        
+        .toggle-btn:hover {
+            background: #2980b9;
+        }
+        
+        .toggle-btn.active:hover {
+            background: #27ae60;
+        }
+        
+        #circleTool {
+            background: #e67e22;
+        }
+        
+        #circleTool:hover {
+            background: #d35400;
+        }
+        
+        #circleTool.active {
+            background: #bf6516;
+        }
+        
+        #rectangleTool {
+            background: #9b59b6;
+        }
+        
+        #rectangleTool:hover {
+            background: #8e44ad;
+        }
+        
+        #rectangleTool.active {
+            background: #7d3c98;
+        }
+        
+        #selectTool {
+            background: #1abc9c;
+        }
+        
+        #selectTool:hover {
+            background: #16a085;
+        }
+        
+        #selectTool.active {
+            background: #138d75;
+        }
+        
+        input[type="color"] {
+            width: 40px;
+            height: 30px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        input[type="range"] {
+            width: 100px;
+        }
+        
+        .canvas-container {
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+        
+        .canvas-wrapper {
+            position: relative;
+            border: 2px solid #34495e;
+            border-radius: 8px;
+            overflow: hidden;
+            background: white;
+        }
+        
+        #drawingCanvas {
+            display: block;
+            cursor: crosshair;
+            touch-action: none; /* Disable browser touch gestures */
+            user-select: none; /* Prevent text selection */
+        }
+        
+        .controls {
+            background: #ecf0f1;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        .frame-selector {
+            background: #34495e;
+            padding: 15px;
+            border-top: 1px solid #2c3e50;
+        }
+        
+        .frame-selector-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .frame-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .frame-actions button {
+            padding: 6px 12px;
+            font-size: 12px;
+            min-height: auto;
+        }
+        
+        .thumbnail-container {
+            display: flex;
+            gap: 8px;
+            padding: 10px 0;
+            overflow-x: auto;
+            max-width: 100%;
+            background: #2c3e50;
+            border-radius: 4px;
+            padding: 12px;
+        }
+        
+        .thumbnail {
+            position: relative;
+            min-width: 80px;
+            width: 80px;
+            height: 53px;
+            border: 3px solid transparent;
+            border-radius: 4px;
+            cursor: pointer;
+            background: white;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+        
+        .thumbnail:hover {
+            border-color: #3498db;
+            transform: scale(1.05);
+        }
+        
+        .thumbnail.current {
+            border-color: #e74c3c;
+            box-shadow: 0 0 8px rgba(231, 76, 60, 0.5);
+        }
+        
+        .thumbnail.selected {
+            border-color: #f39c12;
+            box-shadow: 0 0 8px rgba(243, 156, 18, 0.5);
+        }
+        
+        .thumbnail canvas {
+            width: 100%;
+            height: 100%;
+            border-radius: 2px;
+        }
+        
+        .thumbnail-number {
+            position: absolute;
+            top: -8px;
+            left: -8px;
+            background: #2c3e50;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: bold;
+        }
+        
+        .thumbnail.current .thumbnail-number {
+            background: #e74c3c;
+        }
+        
+        .thumbnail.selected .thumbnail-number {
+            background: #f39c12;
+        }
+        
+        .frame-info {
+            font-size: 18px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .fps-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .status {
+            background: #34495e;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            font-weight: 500;
+        }
+        
+        .onion-skin-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        input[type="checkbox"] {
+            transform: scale(1.2);
+        }
+        
+        /* Mobile-friendly improvements */
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 4px;
+            }
+            
+            .toolbar {
+                padding: 10px;
+                gap: 10px;
+            }
+            
+            .tool-group {
+                padding: 10px 8px;
+                font-size: 14px;
+            }
+            
+            button {
+                padding: 12px 16px;
+                font-size: 14px;
+                min-height: 44px; /* Minimum touch target size */
+            }
+            
+            .controls {
+                padding: 15px 10px;
+                gap: 15px;
+            }
+            
+            .canvas-container {
+                padding: 10px;
+            }
+            
+            #drawingCanvas {
+                max-width: 100%;
+                height: auto;
+            }
+            
+            .frame-info {
+                font-size: 16px;
+            }
+            
+            .frame-selector {
+                padding: 10px;
+            }
+            
+            .frame-selector-header {
+                flex-direction: column;
+                gap: 10px;
+                align-items: stretch;
+            }
+            
+            .frame-actions {
+                justify-content: center;
+            }
+            
+            .thumbnail-container {
+                gap: 6px;
+                padding: 8px;
+            }
+            
+            .thumbnail {
+                min-width: 60px;
+                width: 60px;
+                height: 40px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header"></div>
+        
+        <div class="toolbar">
+            <div class="tool-group">
+                <label>Tool:</label>
+                <button id="penTool" class="active" title="Pen tool (P)">✏️ Pen</button>
+                <button id="eraserTool" title="Eraser tool (E)">🧽 Eraser</button>
+                <button id="fillTool" title="Paint fill (F)">🪣 Fill</button>
+                <button id="lineTool" title="Line tool (L)">📏 Line</button>
+                <button id="circleTool" title="Circle tool (O)">⭕ Circle</button>
+                <button id="rectangleTool" title="Rectangle tool (R)">⬜ Rectangle</button>
+                <button id="selectTool" title="Select tool (S)">👆 Select</button>
+            </div>
+            
+            <div class="tool-group">
+                <label>Shape:</label>
+                <button id="fillShapeToggle" class="toggle-btn active" title="Toggle fill/outline">🎨 Filled</button>
+            </div>
+            
+            <div class="tool-group">
+                <label>Color:</label>
+                <input type="color" id="colorPicker" value="#000000">
+            </div>
+            
+            <div class="tool-group">
+                <label>Size:</label>
+                <input type="range" id="brushSize" min="1" max="20" value="3">
+                <span id="sizeDisplay">3px</span>
+            </div>
+            
+            <div class="tool-group onion-skin-toggle">
+                <label>Onion Skin:</label>
+                <input type="checkbox" id="onionSkinToggle" checked>
+                <input type="range" id="onionOpacity" min="10" max="80" value="30" style="width: 60px;">
+                <span id="opacityDisplay">30%</span>
+            </div>
+            
+            <div class="tool-group">
+                <button id="undoBtn" title="Undo (Ctrl+Z)" disabled>↶ Undo</button>
+                <button id="redoBtn" title="Redo (Ctrl+Y)" disabled>↷ Redo</button>
+            </div>
+            
+            <div class="tool-group">
+                <button id="clearFrame" title="Clear frame (C)">🗑️ Clear Frame</button>
+                <button id="shortcutsHelp" title="Show shortcuts (H)">⌨️ Shortcuts</button>
+            </div>
+        </div>
+        
+        <div class="canvas-container">
+            <div class="canvas-wrapper">
+                <canvas id="drawingCanvas" width="600" height="400"></canvas>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <div class="tool-group">
+                <button id="newFrame" title="New frame (D)">➕ New Frame</button>
+                <button id="prevFrame" title="Previous frame (←)">⬅️ Previous</button>
+                <button id="nextFrame" title="Next frame (→)">➡️ Next</button>
+                <button id="deleteFrame" title="Delete frame (Delete)">❌ Delete Frame</button>
+            </div>
+            
+            <div class="frame-info">
+                Frame: <span id="currentFrame">1</span> / <span id="totalFrames">1</span>
+            </div>
+            
+            <div class="tool-group">
+                <button id="playPause" title="Play/Pause animation (Space)">▶️ Play</button>
+            </div>
+            
+            <div class="tool-group fps-control">
+                <label>FPS:</label>
+                <input type="range" id="fpsSlider" min="1" max="30" value="12">
+                <span id="fpsDisplay">12</span>
+            </div>
+            
+            <div class="tool-group">
+                <button id="exportGif">📥 Export GIF</button>
+            </div>
+        </div>
+        
+        <div class="frame-selector">
+            <div class="frame-selector-header">
+                <span>Timeline</span>
+                <div class="frame-actions">
+                    <button id="duplicateFrames" title="Duplicate selected frames (Ctrl+D)" disabled>📋 Duplicate</button>
+                    <button id="deleteSelectedFrames" title="Delete selected frames (Delete)" disabled>🗑️ Delete</button>
+                    <button id="selectAllFrames" title="Select all frames (Ctrl+A)">📑 Select All</button>
+                </div>
+            </div>
+            <div class="thumbnail-container" id="thumbnailContainer">
+                <!-- Thumbnails will be generated here -->
+            </div>
+        </div>
+        
+        <div class="status" id="status"> </div>
+    </div>
+
+    <script>
+        class FlipbookAnimator {
+            constructor() {
+                this.canvas = document.getElementById('drawingCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                
+                // Create a separate canvas to track only the drawing content (no onion skin)
+                this.drawingCanvas = document.createElement('canvas');
+                this.drawingCanvas.width = this.canvas.width;
+                this.drawingCanvas.height = this.canvas.height;
+                this.drawingCtx = this.drawingCanvas.getContext('2d');
+                
+                // History management
+                this.frameHistories = [[]]; // Array of history arrays (one per frame)
+                this.frameHistoryIndex = [0]; // Current history position per frame
+                this.maxHistorySize = 50; // Limit memory usage
+                
+                this.frames = [this.getBlankFrame()];
+                this.currentFrameIndex = 0;
+                this.isDrawing = false;
+                this.isPlaying = false;
+                this.currentTool = 'pen';
+                this.fps = 12;
+                this.animationInterval = null;
+                this.lastPoint = null;
+                
+                // Line tool state
+                this.lineStartPoint = null;
+                this.isDrawingLine = false;
+                
+                // Shape tool state
+                this.shapeStartPoint = null;
+                this.isDrawingShape = false;
+                this.shapePreviewCanvas = null;
+                this.shapeFilled = true;
+                
+                // Selection tool state
+                this.selectedArea = null;
+                this.isSelecting = false;
+                this.isDragging = false;
+                this.dragOffset = { x: 0, y: 0 };
+                this.selectionImageData = null;
+                
+                // Frame selection state
+                this.selectedFrames = new Set();
+                this.lastClickedFrame = 0;
+                
+                this.setupEventListeners();
+                this.loadCurrentFrameToDrawingCanvas();
+                this.updateDisplay();
+                this.updateFrameInfo();
+                this.generateThumbnails();
+                
+                // Save initial state to history
+                this.saveToHistory();
+            }
+            
+            getBlankFrame() {
+                const canvas = document.createElement('canvas');
+                canvas.width = this.canvas.width;
+                canvas.height = this.canvas.height;
+                const ctx = canvas.getContext('2d');
+                // Don't fill with white - keep transparent so onion skin can show through
+                return ctx.getImageData(0, 0, canvas.width, canvas.height);
+            }
+            
+            adjustBrushSize(delta) {
+                const brushSlider = document.getElementById('brushSize');
+                let newSize = parseInt(brushSlider.value) + delta;
+                newSize = Math.max(1, Math.min(20, newSize)); // Clamp between 1-20
+                brushSlider.value = newSize;
+                document.getElementById('sizeDisplay').textContent = newSize + 'px';
+                this.updateStatus(`⌨️ Brush size: ${newSize}px ([/])`);
+            }
+            
+            setBrushSize(size) {
+                const brushSlider = document.getElementById('brushSize');
+                const clampedSize = Math.max(1, Math.min(20, size));
+                brushSlider.value = clampedSize;
+                document.getElementById('sizeDisplay').textContent = clampedSize + 'px';
+            }
+            
+            showShortcutsHelp() {
+                const helpText = `
+🎬 FLIPBOOK ANIMATOR SHORTCUTS
+
+📐 TOOLS:
+P - Pen tool
+E - Eraser tool
+F - Fill tool (bucket fill)
+L - Line tool
+O - Circle tool
+R - Rectangle tool
+S - Select tool (move objects)
+[/] - Decrease/Increase brush size
+1-9 - Set brush size (1=2px, 2=4px, etc.)
+Esc - Cancel line/shape drawing
+
+✏️ EDIT:
+Ctrl+Z - Undo
+Ctrl+Y - Redo
+
+🎞️ FRAMES:
+D - New frame
+← → - Navigate frames
+C - Clear current frame
+Delete - Delete current/selected frame(s)
+Ctrl+D - Duplicate selected frames
+Ctrl+A - Select all frames
+
+🖱️ THUMBNAIL SELECTION:
+Click - Select frame
+Ctrl+Click - Multi-select frames
+Shift+Click - Range select frames
+
+🎥 ANIMATION:
+Space - Play/Pause
+I - Toggle onion skin
+
+❓ HELP:
+H or ? - Show this help
+
+🎨 TOOL TIPS:
+• Shapes: Click and drag to create circles/rectangles
+• Toggle filled/outline shapes with the shape button
+• Select tool: Drag to select area, then drag to move
+• Fill tool: Click any area to fill with current color
+• Line tool: Click start point, then end point
+• Thumbnails show mini previews of each frame
+• Select multiple frames to duplicate or delete them together
+• Current frame has red border, selected frames have orange border
+• All tools respect current brush size and color
+• Undo/redo works per frame (each frame has its own history)
+
+Click OK to continue animating!
+                `.trim();
+                
+                alert(helpText);
+                this.updateStatus('⌨️ Shortcuts help shown (H or ?)');
+            }
+            
+            saveToHistory() {
+                // Ensure current frame has history arrays
+                if (!this.frameHistories[this.currentFrameIndex]) {
+                    this.frameHistories[this.currentFrameIndex] = [];
+                    this.frameHistoryIndex[this.currentFrameIndex] = 0;
+                }
+                
+                const currentHistory = this.frameHistories[this.currentFrameIndex];
+                const currentIndex = this.frameHistoryIndex[this.currentFrameIndex];
+                
+                // Remove any redo history beyond current position
+                currentHistory.splice(currentIndex + 1);
+                
+                // Add current state to history
+                const imageData = this.drawingCtx.getImageData(0, 0, this.drawingCanvas.width, this.drawingCanvas.height);
+                currentHistory.push(imageData);
+                
+                // Limit history size
+                if (currentHistory.length > this.maxHistorySize) {
+                    currentHistory.shift();
+                } else {
+                    this.frameHistoryIndex[this.currentFrameIndex]++;
+                }
+                
+                this.updateUndoRedoButtons();
+            }
+            
+            undo() {
+                // Ensure current frame has history arrays
+                if (!this.frameHistories[this.currentFrameIndex]) {
+                    this.frameHistories[this.currentFrameIndex] = [];
+                    this.frameHistoryIndex[this.currentFrameIndex] = 0;
+                    return;
+                }
+                
+                const currentHistory = this.frameHistories[this.currentFrameIndex];
+                const currentIndex = this.frameHistoryIndex[this.currentFrameIndex];
+                
+                if (currentIndex > 0) {
+                    this.frameHistoryIndex[this.currentFrameIndex]--;
+                    const previousState = currentHistory[this.frameHistoryIndex[this.currentFrameIndex]];
+                    
+                    // Restore the previous state
+                    this.drawingCtx.putImageData(previousState, 0, 0);
+                    this.updateDisplay();
+                    this.saveCurrentFrame();
+                    this.generateThumbnails(); // Update thumbnail after undo
+                    
+                    this.updateUndoRedoButtons();
+                    this.updateStatus('⌨️ Undone (Ctrl+Z)');
+                }
+            }
+            
+            redo() {
+                // Ensure current frame has history arrays
+                if (!this.frameHistories[this.currentFrameIndex]) {
+                    this.frameHistories[this.currentFrameIndex] = [];
+                    this.frameHistoryIndex[this.currentFrameIndex] = 0;
+                    return;
+                }
+                
+                const currentHistory = this.frameHistories[this.currentFrameIndex];
+                const currentIndex = this.frameHistoryIndex[this.currentFrameIndex];
+                
+                if (currentIndex < currentHistory.length - 1) {
+                    this.frameHistoryIndex[this.currentFrameIndex]++;
+                    const nextState = currentHistory[this.frameHistoryIndex[this.currentFrameIndex]];
+                    
+                    // Restore the next state
+                    this.drawingCtx.putImageData(nextState, 0, 0);
+                    this.updateDisplay();
+                    this.saveCurrentFrame();
+                    this.generateThumbnails(); // Update thumbnail after redo
+                    
+                    this.updateUndoRedoButtons();
+                    this.updateStatus('⌨️ Redone (Ctrl+Y)');
+                }
+            }
+            
+            updateUndoRedoButtons() {
+                // Ensure current frame has history arrays
+                if (!this.frameHistories[this.currentFrameIndex]) {
+                    this.frameHistories[this.currentFrameIndex] = [];
+                    this.frameHistoryIndex[this.currentFrameIndex] = 0;
+                }
+                
+                const currentHistory = this.frameHistories[this.currentFrameIndex];
+                const currentIndex = this.frameHistoryIndex[this.currentFrameIndex];
+                
+                const undoBtn = document.getElementById('undoBtn');
+                const redoBtn = document.getElementById('redoBtn');
+                
+                undoBtn.disabled = currentIndex <= 0;
+                redoBtn.disabled = currentIndex >= currentHistory.length - 1;
+            }
+            
+            toggleShapeFill() {
+                this.shapeFilled = !this.shapeFilled;
+                const btn = document.getElementById('fillShapeToggle');
+                if (this.shapeFilled) {
+                    btn.textContent = '🎨 Filled';
+                    btn.classList.add('active');
+                } else {
+                    btn.textContent = '🔲 Outline';
+                    btn.classList.remove('active');
+                }
+                this.updateStatus(`Shape mode: ${this.shapeFilled ? 'Filled' : 'Outline'}`);
+            }
+            
+            generateThumbnails() {
+                const container = document.getElementById('thumbnailContainer');
+                container.innerHTML = '';
+                
+                this.frames.forEach((frameData, index) => {
+                    const thumbnail = document.createElement('div');
+                    thumbnail.className = 'thumbnail';
+                    thumbnail.dataset.frameIndex = index;
+                    
+                    // Add current frame indicator
+                    if (index === this.currentFrameIndex) {
+                        thumbnail.classList.add('current');
+                    }
+                    
+                    // Add selected indicator
+                    if (this.selectedFrames.has(index)) {
+                        thumbnail.classList.add('selected');
+                    }
+                    
+                    // Create thumbnail canvas
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 80;
+                    canvas.height = 53;
+                    const ctx = canvas.getContext('2d');
+                    
+                    // Draw white background
+                    ctx.fillStyle = 'white';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    
+                    // Create temp canvas for frame content
+                    const tempCanvas = document.createElement('canvas');
+                    tempCanvas.width = this.canvas.width;
+                    tempCanvas.height = this.canvas.height;
+                    const tempCtx = tempCanvas.getContext('2d');
+                    tempCtx.putImageData(frameData, 0, 0);
+                    
+                    // Scale down to thumbnail size
+                    ctx.drawImage(tempCanvas, 0, 0, canvas.width, canvas.height);
+                    
+                    // Frame number
+                    const frameNumber = document.createElement('div');
+                    frameNumber.className = 'thumbnail-number';
+                    frameNumber.textContent = index + 1;
+                    
+                    thumbnail.appendChild(canvas);
+                    thumbnail.appendChild(frameNumber);
+                    
+                    // Click events
+                    thumbnail.addEventListener('click', (e) => this.handleThumbnailClick(e, index));
+                    
+                    container.appendChild(thumbnail);
+                });
+                
+                this.updateFrameActionButtons();
+            }
+            
+            handleThumbnailClick(e, frameIndex) {
+                if (e.ctrlKey || e.metaKey) {
+                    // Multi-select with Ctrl+click
+                    if (this.selectedFrames.has(frameIndex)) {
+                        this.selectedFrames.delete(frameIndex);
+                    } else {
+                        this.selectedFrames.add(frameIndex);
+                    }
+                } else if (e.shiftKey && this.lastClickedFrame !== null) {
+                    // Range select with Shift+click
+                    const start = Math.min(this.lastClickedFrame, frameIndex);
+                    const end = Math.max(this.lastClickedFrame, frameIndex);
+                    this.selectedFrames.clear();
+                    for (let i = start; i <= end; i++) {
+                        this.selectedFrames.add(i);
+                    }
+                } else {
+                    // Single select - switch to frame and clear selection
+                    this.selectedFrames.clear();
+                    this.goToFrame(frameIndex);
+                }
+                
+                this.lastClickedFrame = frameIndex;
+                this.generateThumbnails();
+            }
+            
+            goToFrame(frameIndex) {
+                if (frameIndex === this.currentFrameIndex) return;
+                
+                // Cancel any ongoing operations
+                if (this.isDrawingLine) {
+                    this.isDrawingLine = false;
+                    this.lineStartPoint = null;
+                }
+                if (this.isDrawingShape) {
+                    this.isDrawingShape = false;
+                    this.shapeStartPoint = null;
+                    this.clearShapePreview();
+                }
+                if (this.selectedArea) {
+                    this.clearSelection();
+                }
+                
+                this.saveCurrentFrame();
+                this.currentFrameIndex = frameIndex;
+                this.loadCurrentFrameToDrawingCanvas();
+                this.updateDisplay();
+                this.updateFrameInfo();
+                this.updateUndoRedoButtons();
+            }
+            
+            selectAllFrames() {
+                this.selectedFrames.clear();
+                for (let i = 0; i < this.frames.length; i++) {
+                    this.selectedFrames.add(i);
+                }
+                this.generateThumbnails();
+                this.updateStatus('⌨️ All frames selected (Ctrl+A)');
+            }
+            
+            duplicateSelectedFrames() {
+                if (this.selectedFrames.size === 0) {
+                    // If no selection, duplicate current frame
+                    this.selectedFrames.add(this.currentFrameIndex);
+                }
+                
+                const framesToDuplicate = Array.from(this.selectedFrames).sort((a, b) => b - a); // Reverse order
+                let duplicatedCount = 0;
+                
+                framesToDuplicate.forEach(frameIndex => {
+                    // Create deep copy of frame data
+                    const originalFrame = this.frames[frameIndex];
+                    const tempCanvas = document.createElement('canvas');
+                    tempCanvas.width = this.canvas.width;
+                    tempCanvas.height = this.canvas.height;
+                    const tempCtx = tempCanvas.getContext('2d');
+                    tempCtx.putImageData(originalFrame, 0, 0);
+                    const duplicateFrame = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+                    
+                    // Insert after the original frame
+                    this.frames.splice(frameIndex + 1, 0, duplicateFrame);
+                    
+                    // Duplicate history arrays
+                    const originalHistory = this.frameHistories[frameIndex] || [];
+                    const duplicateHistory = originalHistory.map(historyItem => {
+                        const histCanvas = document.createElement('canvas');
+                        histCanvas.width = this.canvas.width;
+                        histCanvas.height = this.canvas.height;
+                        const histCtx = histCanvas.getContext('2d');
+                        histCtx.putImageData(historyItem, 0, 0);
+                        return histCtx.getImageData(0, 0, histCanvas.width, histCanvas.height);
+                    });
+                    
+                    this.frameHistories.splice(frameIndex + 1, 0, duplicateHistory);
+                    this.frameHistoryIndex.splice(frameIndex + 1, 0, this.frameHistoryIndex[frameIndex] || 0);
+                    
+                    duplicatedCount++;
+                });
+                
+                // Update current frame index if needed
+                const sortedSelected = Array.from(this.selectedFrames).sort((a, b) => a - b);
+                const firstSelected = sortedSelected[0];
+                if (this.currentFrameIndex >= firstSelected) {
+                    this.currentFrameIndex += duplicatedCount;
+                }
+                
+                this.selectedFrames.clear();
+                this.updateFrameInfo();
+                this.generateThumbnails();
+                this.updateStatus(`⌨️ Duplicated ${duplicatedCount} frame(s) (Ctrl+D)`);
+            }
+            
+            deleteSelectedFrames() {
+                if (this.selectedFrames.size === 0) return;
+                if (this.selectedFrames.size >= this.frames.length) {
+                    this.updateStatus('❌ Cannot delete all frames');
+                    return;
+                }
+                
+                const framesToDelete = Array.from(this.selectedFrames).sort((a, b) => b - a); // Reverse order
+                let deletedCount = 0;
+                
+                framesToDelete.forEach(frameIndex => {
+                    this.frames.splice(frameIndex, 1);
+                    this.frameHistories.splice(frameIndex, 1);
+                    this.frameHistoryIndex.splice(frameIndex, 1);
+                    deletedCount++;
+                });
+                
+                // Adjust current frame index
+                const sortedSelected = Array.from(this.selectedFrames).sort((a, b) => a - b);
+                const firstDeleted = sortedSelected[0];
+                const lastDeleted = sortedSelected[sortedSelected.length - 1];
+                
+                if (this.currentFrameIndex >= firstDeleted) {
+                    if (this.currentFrameIndex <= lastDeleted) {
+                        // Current frame was deleted, move to nearest valid frame
+                        this.currentFrameIndex = Math.min(firstDeleted, this.frames.length - 1);
+                    } else {
+                        // Current frame was after deleted range
+                        this.currentFrameIndex -= deletedCount;
+                    }
+                }
+                
+                this.selectedFrames.clear();
+                this.loadCurrentFrameToDrawingCanvas();
+                this.updateDisplay();
+                this.updateFrameInfo();
+                this.updateUndoRedoButtons();
+                this.generateThumbnails();
+                this.updateStatus(`⌨️ Deleted ${deletedCount} frame(s)`);
+            }
+            
+            updateFrameActionButtons() {
+                const duplicateBtn = document.getElementById('duplicateFrames');
+                const deleteBtn = document.getElementById('deleteSelectedFrames');
+                
+                const hasSelection = this.selectedFrames.size > 0;
+                const canDelete = hasSelection && this.selectedFrames.size < this.frames.length;
+                
+                duplicateBtn.disabled = false; // Can always duplicate (current frame if no selection)
+                deleteBtn.disabled = !canDelete;
+                
+                // Update button text based on selection
+                if (hasSelection) {
+                    duplicateBtn.textContent = `📋 Duplicate (${this.selectedFrames.size})`;
+                    deleteBtn.textContent = `🗑️ Delete (${this.selectedFrames.size})`;
+                } else {
+                    duplicateBtn.textContent = '📋 Duplicate';
+                    deleteBtn.textContent = '🗑️ Delete';
+                }
+            }
+            
+            loadCurrentFrameToDrawingCanvas() {
+                // Clear the drawing canvas and load the current frame data
+                this.drawingCtx.clearRect(0, 0, this.drawingCanvas.width, this.drawingCanvas.height);
+                this.drawingCtx.putImageData(this.frames[this.currentFrameIndex], 0, 0);
+                this.updateUndoRedoButtons();
+            }
+            
+            setupEventListeners() {
+                // Drawing events - Mouse
+                this.canvas.addEventListener('mousedown', this.startDrawing.bind(this));
+                this.canvas.addEventListener('mousemove', this.draw.bind(this));
+                this.canvas.addEventListener('mouseup', this.stopDrawing.bind(this));
+                this.canvas.addEventListener('mouseout', this.stopDrawing.bind(this));
+                
+                // Drawing events - Touch (for mobile)
+                this.canvas.addEventListener('touchstart', this.handleTouchStart.bind(this), { passive: false });
+                this.canvas.addEventListener('touchmove', this.handleTouchMove.bind(this), { passive: false });
+                this.canvas.addEventListener('touchend', this.stopDrawing.bind(this));
+                this.canvas.addEventListener('touchcancel', this.stopDrawing.bind(this));
+                
+                // Tool events
+                document.getElementById('penTool').addEventListener('click', () => this.setTool('pen'));
+                document.getElementById('eraserTool').addEventListener('click', () => this.setTool('eraser'));
+                document.getElementById('fillTool').addEventListener('click', () => this.setTool('fill'));
+                document.getElementById('lineTool').addEventListener('click', () => this.setTool('line'));
+                document.getElementById('circleTool').addEventListener('click', () => this.setTool('circle'));
+                document.getElementById('rectangleTool').addEventListener('click', () => this.setTool('rectangle'));
+                document.getElementById('selectTool').addEventListener('click', () => this.setTool('select'));
+                
+                // Shape fill toggle
+                document.getElementById('fillShapeToggle').addEventListener('click', this.toggleShapeFill.bind(this));
+                
+                // Brush size
+                const brushSize = document.getElementById('brushSize');
+                brushSize.addEventListener('input', () => {
+                    document.getElementById('sizeDisplay').textContent = brushSize.value + 'px';
+                });
+                
+                // Frame controls
+                document.getElementById('newFrame').addEventListener('click', this.newFrame.bind(this));
+                document.getElementById('prevFrame').addEventListener('click', this.prevFrame.bind(this));
+                document.getElementById('nextFrame').addEventListener('click', this.nextFrame.bind(this));
+                document.getElementById('deleteFrame').addEventListener('click', this.deleteFrame.bind(this));
+                document.getElementById('clearFrame').addEventListener('click', this.clearFrame.bind(this));
+                document.getElementById('shortcutsHelp').addEventListener('click', this.showShortcutsHelp.bind(this));
+                document.getElementById('undoBtn').addEventListener('click', this.undo.bind(this));
+                document.getElementById('redoBtn').addEventListener('click', this.redo.bind(this));
+                
+                // Frame selector events
+                document.getElementById('duplicateFrames').addEventListener('click', this.duplicateSelectedFrames.bind(this));
+                document.getElementById('deleteSelectedFrames').addEventListener('click', this.deleteSelectedFrames.bind(this));
+                document.getElementById('selectAllFrames').addEventListener('click', this.selectAllFrames.bind(this));
+                
+                // Animation controls
+                document.getElementById('playPause').addEventListener('click', this.togglePlayPause.bind(this));
+                
+                // FPS control
+                const fpsSlider = document.getElementById('fpsSlider');
+                fpsSlider.addEventListener('input', () => {
+                    this.fps = parseInt(fpsSlider.value);
+                    document.getElementById('fpsDisplay').textContent = this.fps;
+                    if (this.isPlaying) {
+                        this.stopAnimation();
+                        this.startAnimation();
+                    }
+                });
+                
+                // Export
+                document.getElementById('exportGif').addEventListener('click', this.exportGif.bind(this));
+                
+                // Keyboard shortcuts
+                document.addEventListener('keydown', (e) => {
+                    // Only trigger if not typing in an input field
+                    if (e.target.tagName === 'INPUT') return;
+                    
+                    // Handle Ctrl+Z (Undo) and Ctrl+Y (Redo)
+                    if (e.ctrlKey || e.metaKey) {
+                        if (e.key.toLowerCase() === 'z' && !e.shiftKey) {
+                            e.preventDefault();
+                            this.undo();
+                            return;
+                        }
+                        if (e.key.toLowerCase() === 'y' || (e.key.toLowerCase() === 'z' && e.shiftKey)) {
+                            e.preventDefault();
+                            this.redo();
+                            return;
+                        }
+                        if (e.key.toLowerCase() === 'd') {
+                            e.preventDefault();
+                            this.duplicateSelectedFrames();
+                            return;
+                        }
+                        if (e.key.toLowerCase() === 'a') {
+                            e.preventDefault();
+                            this.selectAllFrames();
+                            return;
+                        }
+                    }
+                    
+                    switch(e.key.toLowerCase()) {
+                        case 'd':
+                            e.preventDefault();
+                            this.newFrame();
+                            this.updateStatus('⌨️ New frame created (D)');
+                            break;
+                            
+                        case ' ': // Spacebar
+                            e.preventDefault();
+                            this.togglePlayPause();
+                            this.updateStatus(`⌨️ Animation ${this.isPlaying ? 'playing' : 'paused'} (Space)`);
+                            break;
+                            
+                        case 'arrowleft':
+                            e.preventDefault();
+                            this.prevFrame();
+                            this.updateStatus('⌨️ Previous frame (←)');
+                            break;
+                            
+                        case 'arrowright':
+                            e.preventDefault();
+                            this.nextFrame();
+                            this.updateStatus('⌨️ Next frame (→)');
+                            break;
+                            
+                        case 'p':
+                            e.preventDefault();
+                            this.setTool('pen');
+                            this.updateStatus('⌨️ Pen tool selected (P)');
+                            break;
+                            
+                        case 'e':
+                            e.preventDefault();
+                            this.setTool('eraser');
+                            this.updateStatus('⌨️ Eraser tool selected (E)');
+                            break;
+                            
+                        case 'f':
+                            e.preventDefault();
+                            this.setTool('fill');
+                            this.updateStatus('⌨️ Fill tool selected (F)');
+                            break;
+                            
+                        case 'l':
+                            e.preventDefault();
+                            this.setTool('line');
+                            this.updateStatus('⌨️ Line tool selected (L)');
+                            break;
+                            
+                        case 'o':
+                            e.preventDefault();
+                            if (e.ctrlKey || e.metaKey) {
+                                // Don't conflict with Ctrl+O (open file)
+                                return;
+                            }
+                            this.setTool('circle');
+                            this.updateStatus('⌨️ Circle tool selected (O)');
+                            break;
+                            
+                        case 'r':
+                            e.preventDefault();
+                            this.setTool('rectangle');
+                            this.updateStatus('⌨️ Rectangle tool selected (R)');
+                            break;
+                            
+                        case 's':
+                            e.preventDefault();
+                            if (e.ctrlKey || e.metaKey) {
+                                // Don't conflict with Ctrl+S (save)
+                                return;
+                            }
+                            this.setTool('select');
+                            this.updateStatus('⌨️ Select tool selected (S)');
+                            break;
+                            
+                        case 'c':
+                            e.preventDefault();
+                            this.clearFrame();
+                            this.updateStatus('⌨️ Frame cleared (C)');
+                            break;
+                            
+                        case 'delete':
+                        case 'backspace':
+                            e.preventDefault();
+                            if (this.selectedFrames.size > 0) {
+                                this.deleteSelectedFrames();
+                            } else {
+                                this.deleteFrame();
+                            }
+                            break;
+                            
+                        case 'o':
+                            e.preventDefault();
+                            if (e.ctrlKey || e.metaKey) {
+                                // Don't conflict with Ctrl+O (open file)
+                                return;
+                            }
+                            this.setTool('circle');
+                            this.updateStatus('⌨️ Circle tool selected (O)');
+                            break;
+                            
+                        case 'r':
+                            e.preventDefault();
+                            this.setTool('rectangle');
+                            this.updateStatus('⌨️ Rectangle tool selected (R)');
+                            break;
+                            
+                        case 's':
+                            e.preventDefault();
+                            if (e.ctrlKey || e.metaKey) {
+                                // Don't conflict with Ctrl+S (save)
+                                return;
+                            }
+                            this.setTool('select');
+                            this.updateStatus('⌨️ Select tool selected (S)');
+                            break;
+                            
+                        case 'i':
+                            e.preventDefault();
+                            const onionToggle = document.getElementById('onionSkinToggle');
+                            onionToggle.checked = !onionToggle.checked;
+                            this.updateDisplay();
+                            this.updateStatus(`⌨️ Onion skin ${onionToggle.checked ? 'on' : 'off'} (I)`);
+                            break;
+                            
+                        case '[':
+                            e.preventDefault();
+                            this.adjustBrushSize(-1);
+                            break;
+                            
+                        case ']':
+                            e.preventDefault();
+                            this.adjustBrushSize(1);
+                            break;
+                            
+                        case '1': case '2': case '3': case '4': case '5':
+                        case '6': case '7': case '8': case '9':
+                            e.preventDefault();
+                            const size = parseInt(e.key) * 2; // 1=2px, 2=4px, etc.
+                            this.setBrushSize(size);
+                            this.updateStatus(`⌨️ Brush size: ${size}px (${e.key})`);
+                            break;
+                            
+                        case 'h':
+                        case '?':
+                            e.preventDefault();
+                            this.showShortcutsHelp();
+                            break;
+                            
+                        case 'escape':
+                            e.preventDefault();
+                            if (this.isDrawingLine) {
+                                this.isDrawingLine = false;
+                                this.lineStartPoint = null;
+                                this.updateStatus('⌨️ Line cancelled (Esc)');
+                            } else if (this.isDrawingShape) {
+                                this.isDrawingShape = false;
+                                this.shapeStartPoint = null;
+                                this.clearShapePreview();
+                                this.updateStatus('⌨️ Shape cancelled (Esc)');
+                            } else if (this.selectedArea) {
+                                this.clearSelection();
+                                this.updateStatus('⌨️ Selection cleared (Esc)');
+                            }
+                            break;
+                    }
+                });
+                
+                // Onion skin toggle
+                document.getElementById('onionSkinToggle').addEventListener('change', this.updateDisplay.bind(this));
+                
+                // Onion skin opacity
+                const onionOpacity = document.getElementById('onionOpacity');
+                onionOpacity.addEventListener('input', () => {
+                    document.getElementById('opacityDisplay').textContent = onionOpacity.value + '%';
+                    this.updateDisplay();
+                });
+            }
+            
+            setTool(tool) {
+                // Cancel any ongoing operations when switching tools
+                if (this.isDrawingLine) {
+                    this.isDrawingLine = false;
+                    this.lineStartPoint = null;
+                    this.updateStatus('Line cancelled');
+                }
+                if (this.isDrawingShape) {
+                    this.isDrawingShape = false;
+                    this.shapeStartPoint = null;
+                    this.clearShapePreview();
+                }
+                if (this.selectedArea) {
+                    this.clearSelection();
+                }
+                
+                this.currentTool = tool;
+                document.querySelectorAll('.toolbar button').forEach(btn => btn.classList.remove('active'));
+                document.getElementById(tool + 'Tool').classList.add('active');
+                
+                // Set appropriate cursor for each tool
+                switch(tool) {
+                    case 'eraser':
+                        this.canvas.style.cursor = 'grab';
+                        break;
+                    case 'fill':
+                        this.canvas.style.cursor = 'pointer';
+                        break;
+                    case 'line':
+                    case 'circle':
+                    case 'rectangle':
+                        this.canvas.style.cursor = 'crosshair';
+                        break;
+                    case 'select':
+                        this.canvas.style.cursor = 'default';
+                        break;
+                    default: // pen
+                        this.canvas.style.cursor = 'crosshair';
+                }
+            }
+            
+            startDrawing(e) {
+                const rect = this.canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                if (this.currentTool === 'fill') {
+                    this.floodFill(Math.floor(x), Math.floor(y));
+                    return;
+                }
+                
+                if (this.currentTool === 'line') {
+                    if (!this.isDrawingLine) {
+                        // First click - start line
+                        this.lineStartPoint = { x, y };
+                        this.isDrawingLine = true;
+                        this.updateStatus('Click to set line end point');
+                    } else {
+                        // Second click - finish line
+                        this.drawLine(this.lineStartPoint.x, this.lineStartPoint.y, x, y);
+                        this.isDrawingLine = false;
+                        this.lineStartPoint = null;
+                        this.updateStatus('Line drawn');
+                    }
+                    return;
+                }
+                
+                if (this.currentTool === 'circle' || this.currentTool === 'rectangle') {
+                    // Start shape drawing
+                    this.shapeStartPoint = { x, y };
+                    this.isDrawingShape = true;
+                    this.updateStatus(`Drawing ${this.currentTool}...`);
+                    return;
+                }
+                
+                if (this.currentTool === 'select') {
+                    // Check if clicking on existing selection
+                    if (this.selectedArea && this.isPointInSelection(x, y)) {
+                        this.isDragging = true;
+                        this.dragOffset = {
+                            x: x - this.selectedArea.x,
+                            y: y - this.selectedArea.y
+                        };
+                        this.canvas.style.cursor = 'move';
+                        this.updateStatus('Dragging selection...');
+                    } else {
+                        // Start new selection
+                        this.clearSelection();
+                        this.selectedArea = { x, y, width: 0, height: 0 };
+                        this.isSelecting = true;
+                        this.updateStatus('Creating selection...');
+                    }
+                    return;
+                }
+                
+                // Pen and eraser tools (original behavior)
+                this.isDrawing = true;
+                this.lastPoint = { x, y };
+                
+                // Set up drawing style for both canvases
+                const lineWidth = document.getElementById('brushSize').value;
+                const color = document.getElementById('colorPicker').value;
+                
+                // Configure visible canvas
+                this.ctx.lineWidth = lineWidth;
+                this.ctx.lineCap = 'round';
+                this.ctx.lineJoin = 'round';
+                
+                // Configure drawing canvas (clean copy)
+                this.drawingCtx.lineWidth = lineWidth;
+                this.drawingCtx.lineCap = 'round';
+                this.drawingCtx.lineJoin = 'round';
+                
+                if (this.currentTool === 'pen') {
+                    this.ctx.globalCompositeOperation = 'source-over';
+                    this.ctx.strokeStyle = color;
+                    this.ctx.fillStyle = color;
+                    
+                    this.drawingCtx.globalCompositeOperation = 'source-over';
+                    this.drawingCtx.strokeStyle = color;
+                    this.drawingCtx.fillStyle = color;
+                } else if (this.currentTool === 'eraser') {
+                    this.ctx.globalCompositeOperation = 'destination-out';
+                    this.drawingCtx.globalCompositeOperation = 'destination-out';
+                }
+                
+                // Draw a single dot for the starting point on both canvases
+                this.ctx.beginPath();
+                this.ctx.arc(this.lastPoint.x, this.lastPoint.y, lineWidth / 2, 0, Math.PI * 2);
+                this.ctx.fill();
+                
+                this.drawingCtx.beginPath();
+                this.drawingCtx.arc(this.lastPoint.x, this.lastPoint.y, lineWidth / 2, 0, Math.PI * 2);
+                this.drawingCtx.fill();
+            }
+            
+            draw(e) {
+                const rect = this.canvas.getBoundingClientRect();
+                const currentPoint = {
+                    x: e.clientX - rect.left,
+                    y: e.clientY - rect.top
+                };
+                
+                // Track mouse position for shape completion
+                this.lastMouseX = currentPoint.x;
+                this.lastMouseY = currentPoint.y;
+                
+                // Handle shape drawing preview
+                if (this.isDrawingShape && this.shapeStartPoint) {
+                    this.drawShapePreview(this.shapeStartPoint.x, this.shapeStartPoint.y, currentPoint.x, currentPoint.y);
+                    return;
+                }
+                
+                // Handle selection rectangle
+                if (this.isSelecting && this.selectedArea) {
+                    this.selectedArea.width = currentPoint.x - this.selectedArea.x;
+                    this.selectedArea.height = currentPoint.y - this.selectedArea.y;
+                    this.drawSelectionOverlay();
+                    return;
+                }
+                
+                // Handle dragging selected area
+                if (this.isDragging && this.selectedArea) {
+                    const newX = currentPoint.x - this.dragOffset.x;
+                    const newY = currentPoint.y - this.dragOffset.y;
+                    this.selectedArea.x = newX;
+                    this.selectedArea.y = newY;
+                    this.drawDragPreview();
+                    return;
+                }
+                
+                // Only pen and eraser tools use continuous drawing
+                if (this.currentTool !== 'pen' && this.currentTool !== 'eraser') return;
+                if (!this.isDrawing || !this.lastPoint) return;
+                
+                // Draw smooth line from last point to current point on both canvases
+                this.ctx.beginPath();
+                this.ctx.moveTo(this.lastPoint.x, this.lastPoint.y);
+                this.ctx.lineTo(currentPoint.x, currentPoint.y);
+                this.ctx.stroke();
+                
+                this.drawingCtx.beginPath();
+                this.drawingCtx.moveTo(this.lastPoint.x, this.lastPoint.y);
+                this.drawingCtx.lineTo(currentPoint.x, currentPoint.y);
+                this.drawingCtx.stroke();
+                
+                this.lastPoint = currentPoint;
+            }
+            
+            drawShapePreview(startX, startY, endX, endY) {
+                // Restore clean drawing canvas first
+                this.updateDisplay();
+                
+                const width = endX - startX;
+                const height = endY - startY;
+                const lineWidth = document.getElementById('brushSize').value;
+                const color = document.getElementById('colorPicker').value;
+                
+                this.ctx.lineWidth = lineWidth;
+                this.ctx.strokeStyle = color;
+                this.ctx.fillStyle = color;
+                this.ctx.globalCompositeOperation = 'source-over';
+                
+                this.ctx.beginPath();
+                
+                if (this.currentTool === 'circle') {
+                    const centerX = startX + width / 2;
+                    const centerY = startY + height / 2;
+                    const radius = Math.sqrt(width * width + height * height) / 2;
+                    this.ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+                } else if (this.currentTool === 'rectangle') {
+                    this.ctx.rect(startX, startY, width, height);
+                }
+                
+                if (this.shapeFilled) {
+                    this.ctx.fill();
+                } else {
+                    this.ctx.stroke();
+                }
+            }
+            
+            clearShapePreview() {
+                this.updateDisplay();
+            }
+            
+            finishShape(startX, startY, endX, endY) {
+                const width = endX - startX;
+                const height = endY - startY;
+                const lineWidth = document.getElementById('brushSize').value;
+                const color = document.getElementById('colorPicker').value;
+                
+                // Draw on both canvases
+                [this.ctx, this.drawingCtx].forEach(ctx => {
+                    ctx.lineWidth = lineWidth;
+                    ctx.strokeStyle = color;
+                    ctx.fillStyle = color;
+                    ctx.globalCompositeOperation = 'source-over';
+                    
+                    ctx.beginPath();
+                    
+                    if (this.currentTool === 'circle') {
+                        const centerX = startX + width / 2;
+                        const centerY = startY + height / 2;
+                        const radius = Math.sqrt(width * width + height * height) / 2;
+                        ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+                    } else if (this.currentTool === 'rectangle') {
+                        ctx.rect(startX, startY, width, height);
+                    }
+                    
+                    if (this.shapeFilled) {
+                        ctx.fill();
+                    } else {
+                        ctx.stroke();
+                    }
+                });
+            }
+            
+            isPointInSelection(x, y) {
+                if (!this.selectedArea) return false;
+                return x >= this.selectedArea.x && 
+                       x <= this.selectedArea.x + this.selectedArea.width &&
+                       y >= this.selectedArea.y && 
+                       y <= this.selectedArea.y + this.selectedArea.height;
+            }
+            
+            drawSelectionOverlay() {
+                this.updateDisplay();
+                
+                // Draw selection rectangle
+                this.ctx.strokeStyle = '#0080ff';
+                this.ctx.lineWidth = 2;
+                this.ctx.setLineDash([5, 5]);
+                this.ctx.globalCompositeOperation = 'source-over';
+                
+                this.ctx.strokeRect(
+                    this.selectedArea.x, 
+                    this.selectedArea.y, 
+                    this.selectedArea.width, 
+                    this.selectedArea.height
+                );
+                
+                this.ctx.setLineDash([]);
+            }
+            
+            finalizeSelection() {
+                if (!this.selectedArea || this.selectedArea.width === 0 || this.selectedArea.height === 0) {
+                    this.clearSelection();
+                    return;
+                }
+                
+                // Normalize selection rectangle
+                if (this.selectedArea.width < 0) {
+                    this.selectedArea.x += this.selectedArea.width;
+                    this.selectedArea.width = -this.selectedArea.width;
+                }
+                if (this.selectedArea.height < 0) {
+                    this.selectedArea.y += this.selectedArea.height;
+                    this.selectedArea.height = -this.selectedArea.height;
+                }
+                
+                // Capture selected pixels
+                this.selectionImageData = this.drawingCtx.getImageData(
+                    this.selectedArea.x,
+                    this.selectedArea.y,
+                    this.selectedArea.width,
+                    this.selectedArea.height
+                );
+                
+                this.drawSelectionOverlay();
+                this.updateStatus('Selection created. Drag to move or click elsewhere to clear.');
+            }
+            
+            drawDragPreview() {
+                this.updateDisplay();
+                
+                // Clear the selected area from the drawing canvas
+                this.drawingCtx.clearRect(
+                    this.selectedArea.x,
+                    this.selectedArea.y,
+                    this.selectedArea.width,
+                    this.selectedArea.height
+                );
+                
+                // Draw the selection at new position
+                if (this.selectionImageData) {
+                    this.ctx.putImageData(this.selectionImageData, this.selectedArea.x, this.selectedArea.y);
+                }
+                
+                // Draw selection border
+                this.ctx.strokeStyle = '#0080ff';
+                this.ctx.lineWidth = 2;
+                this.ctx.setLineDash([5, 5]);
+                this.ctx.strokeRect(
+                    this.selectedArea.x,
+                    this.selectedArea.y,
+                    this.selectedArea.width,
+                    this.selectedArea.height
+                );
+                this.ctx.setLineDash([]);
+            }
+            
+            finalizeMove() {
+                if (!this.selectedArea || !this.selectionImageData) return;
+                
+                // Put the moved selection onto the drawing canvas
+                this.drawingCtx.putImageData(this.selectionImageData, this.selectedArea.x, this.selectedArea.y);
+                
+                this.updateDisplay();
+                this.saveCurrentFrame();
+                this.saveToHistory();
+                this.generateThumbnails();
+                this.clearSelection();
+                this.updateStatus('Selection moved');
+            }
+            
+            clearSelection() {
+                this.selectedArea = null;
+                this.selectionImageData = null;
+                this.isSelecting = false;
+                this.isDragging = false;
+                this.updateDisplay();
+            }
+            
+            floodFill(startX, startY) {
+                const imageData = this.drawingCtx.getImageData(0, 0, this.drawingCanvas.width, this.drawingCanvas.height);
+                const data = imageData.data;
+                const width = imageData.width;
+                const height = imageData.height;
+                
+                // Get target color (color to replace)
+                const targetIndex = (startY * width + startX) * 4;
+                const targetR = data[targetIndex];
+                const targetG = data[targetIndex + 1];
+                const targetB = data[targetIndex + 2];
+                const targetA = data[targetIndex + 3];
+                
+                // Get fill color
+                const fillColor = this.hexToRgb(document.getElementById('colorPicker').value);
+                const fillR = fillColor.r;
+                const fillG = fillColor.g;
+                const fillB = fillColor.b;
+                const fillA = 255;
+                
+                // Don't fill if target and fill colors are the same
+                if (targetR === fillR && targetG === fillG && targetB === fillB && targetA === fillA) {
+                    return;
+                }
+                
+                // Flood fill algorithm using stack
+                const stack = [{x: startX, y: startY}];
+                const visited = new Set();
+                
+                while (stack.length > 0) {
+                    const {x, y} = stack.pop();
+                    
+                    if (x < 0 || x >= width || y < 0 || y >= height) continue;
+                    
+                    const key = `${x},${y}`;
+                    if (visited.has(key)) continue;
+                    visited.add(key);
+                    
+                    const index = (y * width + x) * 4;
+                    
+                    // Check if this pixel matches the target color
+                    if (data[index] !== targetR || data[index + 1] !== targetG || 
+                        data[index + 2] !== targetB || data[index + 3] !== targetA) {
+                        continue;
+                    }
+                    
+                    // Fill this pixel
+                    data[index] = fillR;
+                    data[index + 1] = fillG;
+                    data[index + 2] = fillB;
+                    data[index + 3] = fillA;
+                    
+                    // Add neighboring pixels to stack
+                    stack.push({x: x + 1, y});
+                    stack.push({x: x - 1, y});
+                    stack.push({x, y: y + 1});
+                    stack.push({x, y: y - 1});
+                }
+                
+                // Update both canvases
+                this.drawingCtx.putImageData(imageData, 0, 0);
+                this.updateDisplay();
+                this.saveCurrentFrame();
+                this.saveToHistory(); // Save to history after fill
+                this.generateThumbnails(); // Update thumbnail after fill
+                this.updateStatus('Area filled');
+            }
+            
+            drawLine(x1, y1, x2, y2) {
+                const lineWidth = document.getElementById('brushSize').value;
+                const color = document.getElementById('colorPicker').value;
+                
+                // Draw on both canvases
+                [this.ctx, this.drawingCtx].forEach(ctx => {
+                    ctx.lineWidth = lineWidth;
+                    ctx.lineCap = 'round';
+                    ctx.strokeStyle = color;
+                    ctx.globalCompositeOperation = 'source-over';
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(x1, y1);
+                    ctx.lineTo(x2, y2);
+                    ctx.stroke();
+                });
+                
+                this.saveCurrentFrame();
+                this.saveToHistory(); // Save to history after drawing line
+                this.generateThumbnails(); // Update thumbnail after line
+            }
+            
+            hexToRgb(hex) {
+                const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+                return result ? {
+                    r: parseInt(result[1], 16),
+                    g: parseInt(result[2], 16),
+                    b: parseInt(result[3], 16)
+                } : {r: 0, g: 0, b: 0};
+            }
+            
+            handleTouchStart(e) {
+                e.preventDefault(); // Prevent scrolling
+                if (e.touches.length === 1) { // Only handle single touch
+                    const touch = e.touches[0];
+                    const mouseEvent = new MouseEvent('mousedown', {
+                        clientX: touch.clientX,
+                        clientY: touch.clientY
+                    });
+                    this.startDrawing(mouseEvent);
+                }
+            }
+            
+            handleTouchMove(e) {
+                e.preventDefault(); // Prevent scrolling
+                if (e.touches.length === 1) { // Only handle single touch
+                    const touch = e.touches[0];
+                    const mouseEvent = new MouseEvent('mousemove', {
+                        clientX: touch.clientX,
+                        clientY: touch.clientY
+                    });
+                    this.draw(mouseEvent);
+                }
+            }
+            
+            stopDrawing() {
+                // Handle shape completion
+                if (this.isDrawingShape && this.shapeStartPoint) {
+                    const rect = this.canvas.getBoundingClientRect();
+                    // Get the current mouse position for shape completion
+                    const currentX = this.lastMouseX || this.shapeStartPoint.x + 50;
+                    const currentY = this.lastMouseY || this.shapeStartPoint.y + 50;
+                    
+                    this.finishShape(this.shapeStartPoint.x, this.shapeStartPoint.y, currentX, currentY);
+                    this.isDrawingShape = false;
+                    this.shapeStartPoint = null;
+                    this.clearShapePreview();
+                    this.saveCurrentFrame();
+                    this.saveToHistory();
+                    this.generateThumbnails();
+                    this.updateStatus(`${this.currentTool} drawn`);
+                    return;
+                }
+                
+                // Handle selection completion
+                if (this.isSelecting) {
+                    this.isSelecting = false;
+                    this.finalizeSelection();
+                    return;
+                }
+                
+                // Handle drag completion
+                if (this.isDragging) {
+                    this.isDragging = false;
+                    this.canvas.style.cursor = 'default';
+                    this.finalizeMove();
+                    return;
+                }
+                
+                // Handle pen/eraser completion
+                if (this.isDrawing) {
+                    this.isDrawing = false;
+                    this.lastPoint = null;
+                    this.saveCurrentFrame();
+                    this.saveToHistory(); // Save to history after completing a stroke
+                    this.generateThumbnails(); // Update thumbnail after drawing
+                }
+            }
+            
+            saveCurrentFrame() {
+                // Save from the clean drawing canvas (no onion skin)
+                this.frames[this.currentFrameIndex] = this.drawingCtx.getImageData(0, 0, this.drawingCanvas.width, this.drawingCanvas.height);
+            }
+            
+            updateDisplay() {
+                // Always start with white background
+                this.ctx.fillStyle = 'white';
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                // Draw onion skin (previous frame with transparency)
+                if (document.getElementById('onionSkinToggle').checked && this.currentFrameIndex > 0) {
+                    const opacity = document.getElementById('onionOpacity').value / 100;
+                    
+                    // Create temporary canvas for previous frame
+                    const tempCanvas = document.createElement('canvas');
+                    tempCanvas.width = this.canvas.width;
+                    tempCanvas.height = this.canvas.height;
+                    const tempCtx = tempCanvas.getContext('2d');
+                    tempCtx.putImageData(this.frames[this.currentFrameIndex - 1], 0, 0);
+                    
+                    // Draw with opacity
+                    this.ctx.globalAlpha = opacity;
+                    this.ctx.drawImage(tempCanvas, 0, 0);
+                    this.ctx.globalAlpha = 1.0;
+                }
+                
+                // Draw current frame content from the clean drawing canvas
+                this.ctx.drawImage(this.drawingCanvas, 0, 0);
+            }
+            
+            newFrame() {
+                this.saveCurrentFrame();
+                this.frames.push(this.getBlankFrame());
+                
+                // Initialize history for new frame
+                this.frameHistories.push([]);
+                this.frameHistoryIndex.push(0);
+                
+                this.currentFrameIndex = this.frames.length - 1;
+                this.selectedFrames.clear(); // Clear selection when creating new frame
+                this.loadCurrentFrameToDrawingCanvas();
+                this.updateDisplay();
+                this.updateFrameInfo();
+                this.generateThumbnails();
+                
+                // Save initial state of new frame
+                this.saveToHistory();
+                
+                this.updateStatus(`Created frame ${this.currentFrameIndex + 1}`);
+            }
+            
+            prevFrame() {
+                if (this.currentFrameIndex > 0) {
+                    // Cancel any ongoing line drawing
+                    if (this.isDrawingLine) {
+                        this.isDrawingLine = false;
+                        this.lineStartPoint = null;
+                    }
+                    
+                    this.saveCurrentFrame();
+                    this.currentFrameIndex--;
+                    this.selectedFrames.clear(); // Clear selection when navigating
+                    this.loadCurrentFrameToDrawingCanvas();
+                    this.updateDisplay();
+                    this.updateFrameInfo();
+                    this.updateUndoRedoButtons();
+                    this.generateThumbnails();
+                }
+            }
+            
+            nextFrame() {
+                if (this.currentFrameIndex < this.frames.length - 1) {
+                    // Cancel any ongoing line drawing
+                    if (this.isDrawingLine) {
+                        this.isDrawingLine = false;
+                        this.lineStartPoint = null;
+                    }
+                    
+                    this.saveCurrentFrame();
+                    this.currentFrameIndex++;
+                    this.selectedFrames.clear(); // Clear selection when navigating
+                    this.loadCurrentFrameToDrawingCanvas();
+                    this.updateDisplay();
+                    this.updateFrameInfo();
+                    this.updateUndoRedoButtons();
+                    this.generateThumbnails();
+                }
+            }
+            
+            deleteFrame() {
+                if (this.frames.length > 1) {
+                    this.frames.splice(this.currentFrameIndex, 1);
+                    this.frameHistories.splice(this.currentFrameIndex, 1);
+                    this.frameHistoryIndex.splice(this.currentFrameIndex, 1);
+                    
+                    if (this.currentFrameIndex >= this.frames.length) {
+                        this.currentFrameIndex = this.frames.length - 1;
+                    }
+                    this.selectedFrames.clear(); // Clear selection after delete
+                    this.loadCurrentFrameToDrawingCanvas();
+                    this.updateDisplay();
+                    this.updateFrameInfo();
+                    this.updateUndoRedoButtons();
+                    this.generateThumbnails();
+                    this.updateStatus(`Deleted frame, now on frame ${this.currentFrameIndex + 1}`);
+                }
+            }
+            
+            clearFrame() {
+                this.frames[this.currentFrameIndex] = this.getBlankFrame();
+                this.loadCurrentFrameToDrawingCanvas();
+                this.updateDisplay();
+                this.generateThumbnails(); // Update thumbnail after clearing
+                this.saveToHistory(); // Save to history after clearing
+                this.updateStatus(`Cleared frame ${this.currentFrameIndex + 1}`);
+            }
+            
+            updateFrameInfo() {
+                document.getElementById('currentFrame').textContent = this.currentFrameIndex + 1;
+                document.getElementById('totalFrames').textContent = this.frames.length;
+                
+                // Update navigation buttons
+                document.getElementById('prevFrame').disabled = this.currentFrameIndex === 0;
+                document.getElementById('nextFrame').disabled = this.currentFrameIndex === this.frames.length - 1;
+                document.getElementById('deleteFrame').disabled = this.frames.length === 1;
+            }
+            
+            togglePlayPause() {
+                if (this.isPlaying) {
+                    this.stopAnimation();
+                } else {
+                    this.startAnimation();
+                }
+            }
+            
+            startAnimation() {
+                if (this.frames.length < 2) {
+                    this.updateStatus('Need at least 2 frames to play animation');
+                    return;
+                }
+                
+                this.isPlaying = true;
+                document.getElementById('playPause').innerHTML = '⏸️ Pause';
+                
+                const interval = 1000 / this.fps;
+                let frameIndex = 0;
+                
+                this.animationInterval = setInterval(() => {
+                    // Draw white background first
+                    this.ctx.fillStyle = 'white';
+                    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                    
+                    // Create temporary canvas for the frame
+                    const tempCanvas = document.createElement('canvas');
+                    tempCanvas.width = this.canvas.width;
+                    tempCanvas.height = this.canvas.height;
+                    const tempCtx = tempCanvas.getContext('2d');
+                    tempCtx.putImageData(this.frames[frameIndex], 0, 0);
+                    
+                    // Draw the frame content over the white background
+                    this.ctx.drawImage(tempCanvas, 0, 0);
+                    
+                    frameIndex = (frameIndex + 1) % this.frames.length;
+                    document.getElementById('currentFrame').textContent = frameIndex + 1;
+                }, interval);
+                
+                this.updateStatus(`Playing animation at ${this.fps} FPS`);
+            }
+            
+            stopAnimation() {
+                this.isPlaying = false;
+                document.getElementById('playPause').innerHTML = '▶️ Play';
+                
+                if (this.animationInterval) {
+                    clearInterval(this.animationInterval);
+                    this.animationInterval = null;
+                }
+                
+                // Return to current frame
+                this.loadCurrentFrameToDrawingCanvas();
+                this.updateDisplay();
+                this.updateFrameInfo();
+                this.generateThumbnails(); // Refresh thumbnails when stopping animation
+                this.updateStatus('Animation stopped');
+            }
+            
+            updateStatus(message) {
+                document.getElementById('status').textContent = message;
+            }
+            
+            exportGif() {
+                if (this.frames.length < 2) {
+                    this.updateStatus('Need at least 2 frames to export GIF');
+                    return;
+                }
+                
+                this.updateStatus('Generating GIF... Please wait.');
+                
+                const gif = new GIF({
+                    workers: 2,
+                    quality: 10,
+                    width: this.canvas.width,
+                    height: this.canvas.height
+                });
+                
+                // Add each frame to the GIF
+                this.frames.forEach(frameData => {
+                    const tempCanvas = document.createElement('canvas');
+                    tempCanvas.width = this.canvas.width;
+                    tempCanvas.height = this.canvas.height;
+                    const tempCtx = tempCanvas.getContext('2d');
+                    
+                    // Draw white background first
+                    tempCtx.fillStyle = 'white';
+                    tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+                    
+                    // Create another temp canvas for the frame data
+                    const frameCanvas = document.createElement('canvas');
+                    frameCanvas.width = this.canvas.width;
+                    frameCanvas.height = this.canvas.height;
+                    const frameCtx = frameCanvas.getContext('2d');
+                    frameCtx.putImageData(frameData, 0, 0);
+                    
+                    // Draw frame content over white background
+                    tempCtx.drawImage(frameCanvas, 0, 0);
+                    
+                    gif.addFrame(tempCanvas, { delay: 1000 / this.fps });
+                });
+                
+                gif.on('finished', (blob) => {
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'flipbook-animation.gif';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    
+                    this.updateStatus('GIF exported successfully!');
+                });
+                
+                gif.render();
+            }
+        }
+        
+        // Initialize the flipbook animator when the page loads
+        window.addEventListener('load', () => {
+            new FlipbookAnimator();
+        });
+    </script>
+</body>
+</html>
